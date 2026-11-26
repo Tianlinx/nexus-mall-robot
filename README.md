@@ -6,7 +6,7 @@
 
 - 双击仓库根目录的 `index.html`，用较新版本的 Chrome / Edge 打开即可，**无需安装、无需联网、无需构建**。
 - 或在本目录执行 `python -m http.server 8000`，再访问 `http://localhost:8000`。
-- 在线版：开启仓库的 GitHub Pages 后访问 `https://tianlinx.github.io/nexus-mall-robot/`；也可直接用 CDN 打开 `https://cdn.jsdelivr.net/gh/Tianlinx/nexus-mall-robot@main/index.html`。
+- 在线演示：`https://tianlinx.github.io/nexus-mall-robot/`（GitHub Pages，浏览器直接打开即用）。
 
 所有计算都在浏览器本地完成，不上传任何数据。
 
