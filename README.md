@@ -38,6 +38,11 @@
 | `data/NEXUS_占用栅格_56x48.txt` | 占用栅格 |
 | `LICENSE` | MIT 许可证与第三方许可声明 |
 
+## 制作人员 / Contributors
+
+- [@Tianlinx](https://github.com/Tianlinx) — 仓库维护与发布
+- [@ifuowwww](https://github.com/ifuowwww) — 协作开发
+
 ## 第三方组件
 
 Three.js（MIT License）已内联进 `index.html`，其许可全文见 `LICENSE` 末尾。课程场景与数据仅作教学用途。
