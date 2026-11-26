@@ -1,0 +1,19 @@
+config_version=5
+
+[application]
+
+config/name="NEXUS 机器人经营 RPG"
+config/description="第一人称电脑城机器人模拟经营 · 基于 INT6143 报告与 NEXUS 程序真源"
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+config/icon="res://icon.png"
+
+[display]
+
+window/size/viewport_width=1440
+window/size/viewport_height=900
+window/stretch/mode="canvas_items"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
