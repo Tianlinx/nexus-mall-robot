@@ -4353,6 +4353,12 @@ uniform float toneMappingExposure;
 </script>
 </head>
 <body>
+<div id="rpg-entry" style="position:fixed;right:18px;top:18px;z-index:99999;display:flex;gap:10px;align-items:center;font:600 13px/1.4 'Segoe UI','Microsoft YaHei',sans-serif">
+  <a href="rpg.html" style="text-decoration:none;color:#fff;background:linear-gradient(135deg,#0e8f9c,#12b3c2);padding:11px 18px;border-radius:9px;box-shadow:0 6px 20px rgba(0,0,0,.35)">🎮 下载第三人称 RPG 游戏</a>
+  <a href="#" id="rpg-close" style="color:#9fb3c0;text-decoration:none;font-size:18px;padding:4px 6px" title="关闭">×</a>
+</div>
+<script>document.getElementById('rpg-close').addEventListener('click',function(e){e.preventDefault();document.getElementById('rpg-entry').style.display='none'});</script>
+
   <div id="app" aria-label="NEXUS 电脑城单文件离线程序"></div>
 </body>
 </html>
