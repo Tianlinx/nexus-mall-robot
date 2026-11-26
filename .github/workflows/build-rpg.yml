@@ -1,0 +1,109 @@
+name: Build NEXUS RPG (Windows exe)
+
+on:
+  # 默认发布的 exe 由维护者在本机用 Godot 4.3 导出并验证后上传；
+  # 这里保留可复现构建，但需要手动触发，以免覆盖已验证的 Release 资产。
+  workflow_dispatch:
+
+# CI 首次运行需下载 Godot 4.3 Linux 编辑器与 Windows 导出模板（约 1 GB）。
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore project icon
+        run: |
+          base64 -d rpg/icon.png.b64 > rpg/icon.png
+          ls -la rpg/icon.png
+
+      - name: CI-safe export preset (no rcedit on Linux)
+        run: |
+          sed -i 's|application/modify_resources=true|application/modify_resources=false|' rpg/export_presets.cfg
+          sed -i '/^application\/icon=/d' rpg/export_presets.cfg
+          sed -i 's|export_path="NEXUS_RPG.exe"|export_path="NEXUS-RPG-Windows-x64.exe"|' rpg/export_presets.cfg
+          grep -E 'modify_resources|export_path|product_name' rpg/export_presets.cfg
+
+      - name: Download Godot 4.3 + Windows export templates
+        run: |
+          mkdir -p "$RUNNER_TEMP/godot" "$HOME/.local/share/godot/export_templates/4.3.stable"
+          curl -L --retry 3 --fail --silent --show-error \
+            -o "$RUNNER_TEMP/godot.zip" \
+            "https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip"
+          unzip -q -o "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          GODOT_BIN=$(find "$RUNNER_TEMP/godot" -type f -name 'Godot_v4.3-stable_linux*' | head -1)
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+          curl -L --retry 3 --fail --silent --show-error \
+            -o "$RUNNER_TEMP/templates.tpz" \
+            "https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz"
+          python3 - <<'PY'
+          import os, zipfile
+          dst = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable')
+          os.makedirs(dst, exist_ok=True)
+          tpz = os.path.join(os.environ['RUNNER_TEMP'], 'templates.tpz')
+          n = 0
+          with zipfile.ZipFile(tpz) as z:
+              for name in z.namelist():
+                  if not name.startswith('templates/'):
+                      continue
+                  rel = name[len('templates/'):]
+                  if not rel:
+                      continue
+                  if rel.endswith('version.txt') or rel.startswith('windows_'):
+                      with open(os.path.join(dst, rel), 'wb') as f:
+                          f.write(z.read(name))
+                      n += 1
+          print('installed', n, 'template files')
+          assert n >= 2, 'windows templates missing'
+          PY
+
+      - name: Import project / build class cache
+        run: |
+          "$GODOT_BIN" --headless --path rpg --editor --quit 2>&1 | tail -20
+
+      - name: Export Windows exe
+        run: |
+          "$GODOT_BIN" --headless --path rpg --export-release "Windows Desktop" \
+            "$GITHUB_WORKSPACE/NEXUS-RPG-Windows-x64.exe" 2>&1 | tail -30
+          ls -lh NEXUS-RPG-Windows-x64.exe
+          test -s NEXUS-RPG-Windows-x64.exe
+          SIZE=$(stat -c%s NEXUS-RPG-Windows-x64.exe)
+          echo "exe size: $SIZE bytes"
+          test "$SIZE" -gt 40000000
+
+      - name: Publish / update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="rpg-v9.1"
+          ASSET="NEXUS-RPG-Windows-x64.exe"
+          NOTES=$(cat <<'TXT'
+          NEXUS 机器人经营 RPG v9.1 · Godot 4.3 原生导出的 Windows 单文件 exe，无需安装、双击即玩。
+
+          操作：WASD 移动 / 鼠标环绕视角 / Shift 冲刺 / E 取货 / F 在 Gate B 交付 / B 进货 /
+          N 导航与 Cost 面板 / V 自动导航 / M 大地图 / Tab 订单 / K 知识库 / U 技能 / G 关联加购 / ESC 暂停。
+
+          v9.1 避障口径：下一格或安全间距受阻立即局部 A* 绕障；无可行绕路才等待 0.6 s 重试，
+          连续 5 次失败上报路段阻塞；让行实体沿垂直方向侧移 0.7 m 并移出动态占用栅格；
+          段切换重绘路线，终点不再连回中间点。几何、seed 20261113、服务时间 S 独立于 T、
+          Cost 与 w1-w5 均未改动。
+
+          基于 NEXUS 单文件离线版 v9.1 与 INT6143 报告全文构建。地图与商品为教学合成数据。
+          TXT
+          )
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ASSET" --clobber
+            echo "Updated existing release $TAG"
+          else
+            gh release create "$TAG" "$ASSET" \
+              --title "NEXUS 机器人经营 RPG v9.1 · Windows" --notes "$NOTES"
+            echo "Created release $TAG"
+          fi
+          gh release view "$TAG" --json url,assets --jq '.url, (.assets[] | "\(.name) \(.size)")'
